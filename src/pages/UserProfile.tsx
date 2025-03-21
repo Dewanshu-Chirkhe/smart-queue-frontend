@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
@@ -8,18 +8,37 @@ import { toast } from 'sonner';
 
 // User profile page for both patients and staff
 const UserProfile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserProfile } = useAuth();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: '+91 9876543210', // Default Indian phone format
-    address: 'Koramangala, Bangalore',
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
     bloodType: 'O+',
-    emergencyContact: '+91 8765432109',
-    dateOfBirth: '1985-06-15',
+    emergencyContact: '',
+    dateOfBirth: '',
+    specialization: '',
+    hospital: '',
   });
+
+  // Initialize form data when user data is available
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '+91 9876543210',
+        address: user.address || 'Koramangala, Bangalore',
+        bloodType: user.bloodType || 'O+',
+        emergencyContact: user.emergencyContact || '+91 8765432109',
+        dateOfBirth: user.dateOfBirth || '1985-06-15',
+        specialization: user.specialization || '',
+        hospital: user.hospital || '',
+      });
+    }
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -28,9 +47,25 @@ const UserProfile = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, update the user profile in the backend
-    toast.success('Profile updated successfully');
+    updateUserProfile(formData);
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">User Not Found</h2>
+          <p className="text-gray-600 mb-4">Please log in to view your profile</p>
+          <button 
+            onClick={() => navigate('/login')}
+            className="hospital-btn-primary"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,8 +97,8 @@ const UserProfile = () => {
               <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-4">
                 <User className="h-16 w-16 text-gray-400" />
               </div>
-              <h2 className="text-xl font-semibold">{user?.name}</h2>
-              <p className="text-gray-500 mb-2">{user?.role === 'staff' ? 'Hospital Staff' : 'Patient'}</p>
+              <h2 className="text-xl font-semibold">{user.name}</h2>
+              <p className="text-gray-500 mb-2">{user.role === 'staff' ? 'Hospital Staff' : 'Patient'}</p>
               <button className="text-sm text-hospital-600 hover:text-hospital-700">
                 Change profile picture
               </button>
@@ -133,38 +168,70 @@ const UserProfile = () => {
                       className="hospital-input"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Blood Type
-                    </label>
-                    <select
-                      name="bloodType"
-                      value={formData.bloodType}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    >
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Emergency Contact
-                    </label>
-                    <input
-                      type="tel"
-                      name="emergencyContact"
-                      value={formData.emergencyContact}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
-                  </div>
+                  
+                  {user.role === 'patient' ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Blood Type
+                        </label>
+                        <select
+                          name="bloodType"
+                          value={formData.bloodType}
+                          onChange={handleChange}
+                          className="hospital-input"
+                        >
+                          <option value="A+">A+</option>
+                          <option value="A-">A-</option>
+                          <option value="B+">B+</option>
+                          <option value="B-">B-</option>
+                          <option value="AB+">AB+</option>
+                          <option value="AB-">AB-</option>
+                          <option value="O+">O+</option>
+                          <option value="O-">O-</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Emergency Contact
+                        </label>
+                        <input
+                          type="tel"
+                          name="emergencyContact"
+                          value={formData.emergencyContact}
+                          onChange={handleChange}
+                          className="hospital-input"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Specialization
+                        </label>
+                        <input
+                          type="text"
+                          name="specialization"
+                          value={formData.specialization}
+                          onChange={handleChange}
+                          className="hospital-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Hospital
+                        </label>
+                        <input
+                          type="text"
+                          name="hospital"
+                          value={formData.hospital}
+                          onChange={handleChange}
+                          className="hospital-input"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 <div className="flex justify-end">

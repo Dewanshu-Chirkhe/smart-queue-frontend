@@ -1,39 +1,32 @@
 
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
-import { Hospital, Save, Phone, MapPin, Clock, ArrowLeft } from 'lucide-react';
+import { Building, Save, ArrowLeft, Clock, MapPin, Phone, Mail, Globe, User, Shield } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../context/AuthContext';
 
-// Hospital profile page - only accessible to staff
 const HospitalProfile = () => {
-  const { isStaff } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [formData, setFormData] = useState({
-    name: 'AIIMS Delhi',
-    address: 'Ansari Nagar East, New Delhi, Delhi 110029',
-    phone: '+91 11 2658 8500',
-    email: 'info@aiims.edu',
-    website: 'www.aiims.edu',
-    establishedYear: '1956',
-    bedsTotal: '2000',
-    departments: [
-      'Cardiology',
-      'Neurology',
-      'Orthopedics',
-      'Pediatrics',
-      'General Medicine',
-    ],
-    operatingHours: '24 hours',
-    emergencyServices: 'Available 24/7',
-    ambulanceNumber: '102',
+  const [hospitalData, setHospitalData] = useState({
+    name: 'Apollo Hospitals',
+    address: 'No. 154/11, Bannerghatta Road, Bangalore - 560076',
+    email: 'info@apollo-hospitals.com',
+    phone: '+91 80 2630 4050',
+    website: 'www.apollohospitals.com',
+    hours: '24 hours (Emergency), 9 AM - 6 PM (OPD)',
+    specialities: 'Cardiology, Neurology, Orthopedics, Oncology, Pediatrics',
+    beds: '350',
+    established: '1983',
+    accreditation: 'NABH, JCI Accredited',
+    description: 'Apollo Hospitals is one of the leading hospital chains in India, providing comprehensive healthcare services with state-of-the-art facilities and experienced medical professionals.'
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setHospitalData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -42,10 +35,21 @@ const HospitalProfile = () => {
     toast.success('Hospital profile updated successfully');
   };
 
-  // Redirect to admin dashboard if not staff
-  if (!isStaff) {
-    navigate('/patient-dashboard');
-    return null;
+  if (!user || user.role !== 'staff') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">Only staff members can access the hospital profile</p>
+          <button 
+            onClick={() => navigate(-1)}
+            className="hospital-btn-primary"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -53,42 +57,60 @@ const HospitalProfile = () => {
       <Navbar />
       
       <div className="pt-20 page-container">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-            <button 
-              onClick={() => navigate(-1)} 
-              className="mr-4 p-2 rounded-full hover:bg-gray-100"
-            >
-              <ArrowLeft className="h-5 w-5 text-gray-600" />
-            </button>
-            <h1 className="page-title">Hospital Profile</h1>
-          </div>
+        <div className="flex items-center mb-6">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="mr-4 p-2 rounded-full hover:bg-gray-100"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          <h1 className="page-title">Hospital Profile</h1>
         </div>
 
         <div className="glass-panel p-6">
           <div className="flex flex-col md:flex-row items-start gap-6">
-            <div className="w-full md:w-1/4 flex flex-col items-center">
-              <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-4">
-                <Hospital className="h-16 w-16 text-gray-400" />
+            <div className="w-full md:w-1/3 flex flex-col items-center">
+              <div className="w-32 h-32 rounded-full bg-hospital-100 flex items-center justify-center overflow-hidden mb-4">
+                <Building className="h-16 w-16 text-hospital-600" />
               </div>
-              <h2 className="text-xl font-semibold text-center">{formData.name}</h2>
-              <div className="flex items-center text-gray-500 mb-1 mt-2">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span className="text-sm">New Delhi, India</span>
-              </div>
-              <div className="flex items-center text-gray-500 mb-2">
-                <Phone className="h-4 w-4 mr-1" />
-                <span className="text-sm">{formData.phone}</span>
-              </div>
-              <div className="flex items-center text-gray-500">
-                <Clock className="h-4 w-4 mr-1" />
-                <span className="text-sm">{formData.operatingHours}</span>
+              <h2 className="text-xl font-semibold">{hospitalData.name}</h2>
+              <p className="text-gray-500 mb-4 text-center">{hospitalData.accreditation}</p>
+              
+              <div className="w-full space-y-4 mt-4">
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <p className="text-gray-700 text-sm">{hospitalData.address}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Phone className="h-5 w-5 text-gray-500" />
+                  <p className="text-gray-700 text-sm">{hospitalData.phone}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Mail className="h-5 w-5 text-gray-500" />
+                  <p className="text-gray-700 text-sm">{hospitalData.email}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Globe className="h-5 w-5 text-gray-500" />
+                  <p className="text-gray-700 text-sm">{hospitalData.website}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Clock className="h-5 w-5 text-gray-500" />
+                  <p className="text-gray-700 text-sm">{hospitalData.hours}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <User className="h-5 w-5 text-gray-500" />
+                  <p className="text-gray-700 text-sm">Established: {hospitalData.established}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Shield className="h-5 w-5 text-gray-500" />
+                  <p className="text-gray-700 text-sm">Beds: {hospitalData.beds}</p>
+                </div>
               </div>
             </div>
             
-            <div className="w-full md:w-3/4">
+            <div className="w-full md:w-2/3">
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="space-y-4 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Hospital Name
@@ -96,115 +118,141 @@ const HospitalProfile = () => {
                     <input
                       type="text"
                       name="name"
-                      value={formData.name}
+                      value={hospitalData.name}
                       onChange={handleChange}
                       className="hospital-input"
                     />
                   </div>
+                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Website
-                    </label>
-                    <input
-                      type="text"
-                      name="website"
-                      value={formData.website}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Address
                     </label>
                     <input
                       type="text"
                       name="address"
-                      value={formData.address}
+                      value={hospitalData.address}
                       onChange={handleChange}
                       className="hospital-input"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Established Year
-                    </label>
-                    <input
-                      type="text"
-                      name="establishedYear"
-                      value={formData.establishedYear}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={hospitalData.email}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={hospitalData.phone}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Total Beds
-                    </label>
-                    <input
-                      type="number"
-                      name="bedsTotal"
-                      value={formData.bedsTotal}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Website
+                      </label>
+                      <input
+                        type="text"
+                        name="website"
+                        value={hospitalData.website}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Working Hours
+                      </label>
+                      <input
+                        type="text"
+                        name="hours"
+                        value={hospitalData.hours}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Operating Hours
-                    </label>
-                    <input
-                      type="text"
-                      name="operatingHours"
-                      value={formData.operatingHours}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Specialities
+                      </label>
+                      <input
+                        type="text"
+                        name="specialities"
+                        value={hospitalData.specialities}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Number of Beds
+                      </label>
+                      <input
+                        type="text"
+                        name="beds"
+                        value={hospitalData.beds}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Emergency Services
-                    </label>
-                    <input
-                      type="text"
-                      name="emergencyServices"
-                      value={formData.emergencyServices}
-                      onChange={handleChange}
-                      className="hospital-input"
-                    />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Established Year
+                      </label>
+                      <input
+                        type="text"
+                        name="established"
+                        value={hospitalData.established}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Accreditation
+                      </label>
+                      <input
+                        type="text"
+                        name="accreditation"
+                        value={hospitalData.accreditation}
+                        onChange={handleChange}
+                        className="hospital-input"
+                      />
+                    </div>
                   </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Ambulance Number
+                      Description
                     </label>
-                    <input
-                      type="text"
-                      name="ambulanceNumber"
-                      value={formData.ambulanceNumber}
+                    <textarea
+                      name="description"
+                      rows={4}
+                      value={hospitalData.description}
                       onChange={handleChange}
                       className="hospital-input"
                     />

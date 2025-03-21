@@ -8,6 +8,13 @@ type User = {
   email: string;
   name: string;
   role: 'staff' | 'patient';
+  phone?: string;
+  address?: string;
+  specialization?: string;
+  hospital?: string;
+  bloodType?: string;
+  emergencyContact?: string;
+  dateOfBirth?: string;
 };
 
 type AuthContextType = {
@@ -15,13 +22,14 @@ type AuthContextType = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUserProfile: (updatedData: Partial<User>) => void;
   isAuthenticated: boolean;
   isStaff: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Mock user data with Indian names - in a real app, this would come from a backend
+// Mock user data with Indian names
 const MOCK_USERS = [
   {
     id: '1',
@@ -29,6 +37,11 @@ const MOCK_USERS = [
     password: 'admin123',
     name: 'Dr. Rajesh Kumar',
     role: 'staff' as const,
+    phone: '+91 9876543210',
+    address: 'Koramangala, Bangalore',
+    specialization: 'Cardiology',
+    hospital: 'Apollo Hospitals',
+    dateOfBirth: '1980-05-15',
   },
   {
     id: '2',
@@ -36,6 +49,35 @@ const MOCK_USERS = [
     password: 'patient123',
     name: 'Ananya Sharma',
     role: 'patient' as const,
+    phone: '+91 8765432109',
+    address: 'Indiranagar, Bangalore',
+    bloodType: 'O+',
+    emergencyContact: '+91 7654321098',
+    dateOfBirth: '1992-08-22',
+  },
+  {
+    id: '3',
+    email: 'doctor@hospital.com',
+    password: 'doctor123',
+    name: 'Dr. Priya Patel',
+    role: 'staff' as const,
+    phone: '+91 9876543211',
+    address: 'HSR Layout, Bangalore',
+    specialization: 'Neurology',
+    hospital: 'Fortis Hospital',
+    dateOfBirth: '1985-03-10',
+  },
+  {
+    id: '4',
+    email: 'patient2@example.com',
+    password: 'patient123',
+    name: 'Vikram Malhotra',
+    role: 'patient' as const,
+    phone: '+91 8765432110',
+    address: 'JP Nagar, Bangalore',
+    bloodType: 'A+',
+    emergencyContact: '+91 7654321099',
+    dateOfBirth: '1988-11-15',
   },
 ];
 
@@ -91,6 +133,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUserProfile = (updatedData: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...updatedData };
+    setUser(updatedUser);
+    localStorage.setItem('hospitalUser', JSON.stringify(updatedUser));
+    toast.success('Profile updated successfully');
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('hospitalUser');
@@ -105,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         login,
         logout,
+        updateUserProfile,
         isAuthenticated: !!user,
         isStaff: user?.role === 'staff',
       }}

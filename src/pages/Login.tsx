@@ -1,120 +1,101 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import OTPVerification from '../components/OTPVerification';
 
 const Login = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login, isAuthenticated, isStaff } = useAuth();
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
 
-  // If already logged in, redirect to appropriate dashboard
-  if (isAuthenticated) {
-    return <Navigate to={isStaff ? '/admin-dashboard' : '/patient-dashboard'} />;
-  }
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
-      await login(email, password);
+      // Show OTP verification instead of direct login
+      setShowOTP(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError('Failed to login. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDemoLogin = async (role: 'staff' | 'patient') => {
-    setIsLoading(true);
+  const handleVerifyOTP = async () => {
     try {
-      if (role === 'staff') {
-        await login('admin@hospital.com', 'admin123');
-      } else {
-        await login('patient@example.com', 'patient123');
-      }
+      setIsLoading(true);
+      await login(email, password);
+      // If login successful, the AuthContext will redirect to the appropriate dashboard
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Demo login failed');
+      setError('Login failed. Please check your credentials.');
+      setShowOTP(false);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-hospital-50 to-blue-50 p-4">
-      <div className="w-full max-w-md glass-panel p-8 animate-fadeIn">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-hospital-50 to-blue-50 p-4">
+      <div className="w-full max-w-md glass-panel p-8 rounded-lg shadow-md">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-full bg-hospital-500 flex items-center justify-center">
-              <span className="text-white text-xl font-bold">H</span>
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-800">Welcome to HealthQueue</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <h1 className="text-3xl font-bold text-hospital-700 mb-2">Hospital Management</h1>
+          <p className="text-gray-600">Sign in to access your account</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-500 rounded-lg text-sm border border-red-100 animate-fadeIn">
-            {error}
+          <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-md flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Mail className="h-5 w-5 text-gray-400" />
               </div>
-              <input
+              <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="hospital-input pl-10"
+                className="pl-10"
                 placeholder="you@example.com"
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Lock className="h-5 w-5 text-gray-400" />
               </div>
-              <input
+              <Input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="hospital-input pl-10 pr-10"
+                className="pl-10"
                 placeholder="••••••••"
                 required
               />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
-                ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
             </div>
           </div>
 
@@ -137,49 +118,43 @@ const Login = () => {
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="w-full hospital-btn-primary flex justify-center items-center"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              'Sign in'
-            )}
-          </button>
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="hospital-btn-primary w-full flex justify-center"
+            >
+              {isLoading ? 'Please wait...' : 'Sign in'}
+            </button>
+          </div>
         </form>
 
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+        <div className="mt-6 text-center text-sm text-gray-600">
+          <p>
+            For demo purposes, use:
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-gray-50 p-2 rounded">
+              <p className="font-semibold">Staff Login</p>
+              <p>admin@hospital.com</p>
+              <p>admin123</p>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or sign in with demo account</span>
+            <div className="bg-gray-50 p-2 rounded">
+              <p className="font-semibold">Patient Login</p>
+              <p>patient@example.com</p>
+              <p>patient123</p>
             </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('staff')}
-              className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-              disabled={isLoading}
-            >
-              Hospital Staff
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('patient')}
-              className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-              disabled={isLoading}
-            >
-              Patient
-            </button>
           </div>
         </div>
       </div>
+
+      {showOTP && (
+        <OTPVerification 
+          onVerify={handleVerifyOTP} 
+          onCancel={() => setShowOTP(false)}
+          email={email}
+        />
+      )}
     </div>
   );
 };
