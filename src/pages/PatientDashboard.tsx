@@ -16,20 +16,21 @@ import {
   CalendarClock,
   ChevronRight
 } from 'lucide-react';
+import { toast } from 'sonner';
 
-// Mock data
+// Mock data with Indian names
 const MOCK_QUEUE_STATUS = {
   position: 3,
   department: 'Cardiology',
   estimatedWaitTime: '25 minutes',
   peopleAhead: 2,
-  doctor: 'Dr. Sarah Johnson',
+  doctor: 'Dr. Vivek Sharma',
 };
 
 const MOCK_UPCOMING_APPOINTMENTS = [
   {
     id: 1,
-    doctor: 'Dr. Michael Chen',
+    doctor: 'Dr. Priya Patel',
     department: 'Cardiology',
     date: '2023-11-15',
     time: '09:30 AM',
@@ -37,7 +38,7 @@ const MOCK_UPCOMING_APPOINTMENTS = [
   },
   {
     id: 2,
-    doctor: 'Dr. Emily Rodriguez',
+    doctor: 'Dr. Amit Singh',
     department: 'General',
     date: '2023-11-22',
     time: '02:15 PM',
@@ -46,20 +47,12 @@ const MOCK_UPCOMING_APPOINTMENTS = [
 ];
 
 const MOCK_DOCTORS = [
-  { id: 1, name: 'Dr. Michael Chen', department: 'Cardiology', rating: 4.9, availability: ['Monday', 'Wednesday', 'Friday'] },
-  { id: 2, name: 'Dr. Emily Rodriguez', department: 'General', rating: 4.7, availability: ['Tuesday', 'Thursday'] },
-  { id: 3, name: 'Dr. James Wilson', department: 'Neurology', rating: 4.8, availability: ['Monday', 'Tuesday', 'Thursday'] },
-  { id: 4, name: 'Dr. Sarah Johnson', department: 'Pediatrics', rating: 4.9, availability: ['Wednesday', 'Friday'] },
-  { id: 5, name: 'Dr. Robert Kim', department: 'Orthopedics', rating: 4.6, availability: ['Monday', 'Wednesday', 'Friday'] },
+  { id: 1, name: 'Dr. Priya Patel', department: 'Cardiology', rating: 4.9, availability: ['Monday', 'Wednesday', 'Friday'] },
+  { id: 2, name: 'Dr. Amit Singh', department: 'General', rating: 4.7, availability: ['Tuesday', 'Thursday'] },
+  { id: 3, name: 'Dr. Sanjay Gupta', department: 'Neurology', rating: 4.8, availability: ['Monday', 'Tuesday', 'Thursday'] },
+  { id: 4, name: 'Dr. Meera Agarwal', department: 'Pediatrics', rating: 4.9, availability: ['Wednesday', 'Friday'] },
+  { id: 5, name: 'Dr. Rajesh Kumar', department: 'Orthopedics', rating: 4.6, availability: ['Monday', 'Wednesday', 'Friday'] },
 ];
-
-const MOCK_HEALTH_METRICS = {
-  bloodPressure: '120/80',
-  heartRate: '78 bpm',
-  temperature: '98.6°F',
-  oxygenLevel: '97%',
-  lastUpdated: '2023-11-10',
-};
 
 const PatientDashboard = () => {
   const { user } = useAuth();
@@ -115,10 +108,10 @@ const PatientDashboard = () => {
     setTimeout(() => {
       const botResponses = [
         "I understand your concern. Based on your symptoms, it could be a common cold, but I recommend seeing a doctor if it persists for more than a week.",
-        "Your appointment with Dr. Johnson is scheduled for November 15th at 10:30 AM. Would you like a reminder?",
+        "Your appointment with Dr. Sharma is scheduled for November 15th at 10:30 AM. Would you like a reminder?",
         "The hospital pharmacy is open from 8:00 AM to 8:00 PM on weekdays, and 9:00 AM to 5:00 PM on weekends.",
         "Your typical wait time for the cardiology department is about 25-30 minutes. However, urgent cases are prioritized.",
-        "Based on your medical history, I recommend maintaining your regular check-ups every 6 months."
+        "AIIMS Delhi recommends maintaining your regular check-ups every 6 months."
       ];
       
       const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)];
@@ -134,6 +127,31 @@ const PatientDashboard = () => {
     }, 1500);
   };
 
+  // Book an appointment with the selected doctor
+  const handleBookAppointment = () => {
+    if (!selectedDoctor || !selectedDate || !selectedTime) return;
+    
+    const doctor = MOCK_DOCTORS.find(doc => doc.id === selectedDoctor);
+    if (!doctor) return;
+    
+    const newAppointment = {
+      id: appointments.length + 1,
+      doctor: doctor.name,
+      department: doctor.department,
+      date: selectedDate,
+      time: selectedTime,
+      status: 'Pending' as const,
+    };
+    
+    setAppointments(prev => [...prev, newAppointment]);
+    setSelectedDoctor(null);
+    setSelectedDate('');
+    setSelectedTime('');
+    
+    toast.success(`Appointment booked with ${doctor.name}`);
+    handleTabChange('overview');
+  };
+
   // Filter doctors based on search query
   const filteredDoctors = MOCK_DOCTORS.filter(doctor => 
     doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -147,9 +165,15 @@ const PatientDashboard = () => {
       <div className="pt-20 page-container">
         <div className="flex justify-between items-center mb-6">
           <h1 className="page-title">Patient Dashboard</h1>
-          <div>
-            <span className="text-sm text-gray-500">Welcome back,</span>
-            <span className="ml-1 font-medium">{user?.name}</span>
+          <div className="flex items-center">
+            <span className="text-sm text-gray-500 mr-2">Welcome,</span>
+            <button 
+              onClick={() => navigate('/user-profile')} 
+              className="flex items-center hover:text-hospital-600"
+            >
+              <span className="font-medium mr-1">{user?.name}</span>
+              <User className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -202,8 +226,8 @@ const PatientDashboard = () => {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="section-container">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              <div className="glass-panel p-5 col-span-1 md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="glass-panel p-5 md:col-span-2">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="section-title">Upcoming Appointments</h2>
                   <button 
@@ -316,69 +340,37 @@ const PatientDashboard = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-5 md:col-span-2">
-                <h2 className="section-title mb-4">Health Metrics</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="stat-card">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-600">Blood Pressure</span>
-                      <span className="text-xl font-bold">{MOCK_HEALTH_METRICS.bloodPressure}</span>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-600">Heart Rate</span>
-                      <span className="text-xl font-bold">{MOCK_HEALTH_METRICS.heartRate}</span>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-600">Temperature</span>
-                      <span className="text-xl font-bold">{MOCK_HEALTH_METRICS.temperature}</span>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-600">Oxygen Level</span>
-                      <span className="text-xl font-bold">{MOCK_HEALTH_METRICS.oxygenLevel}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-gray-500">
-                  Last updated: {new Date(MOCK_HEALTH_METRICS.lastUpdated).toLocaleDateString()}
-                </div>
-              </div>
-              
-              <div className="glass-panel p-5">
-                <h2 className="section-title mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => handleTabChange('appointments')}
-                    className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2"
-                  >
-                    <Calendar className="h-6 w-6 text-hospital-500" />
-                    <span className="text-sm font-medium">Book Appointment</span>
-                  </button>
-                  <button 
-                    onClick={() => handleTabChange('queue')}
-                    className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2"
-                  >
-                    <Clock className="h-6 w-6 text-amber-500" />
-                    <span className="text-sm font-medium">Check Queue</span>
-                  </button>
-                  <button 
-                    onClick={() => handleTabChange('support')}
-                    className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2"
-                  >
-                    <MessageCircle className="h-6 w-6 text-green-500" />
-                    <span className="text-sm font-medium">AI Support</span>
-                  </button>
-                  <button className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2">
-                    <User className="h-6 w-6 text-purple-500" />
-                    <span className="text-sm font-medium">My Profile</span>
-                  </button>
-                </div>
+            <div className="glass-panel p-5">
+              <h2 className="section-title mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button 
+                  onClick={() => handleTabChange('appointments')}
+                  className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2"
+                >
+                  <Calendar className="h-6 w-6 text-hospital-500" />
+                  <span className="text-sm font-medium">Book Appointment</span>
+                </button>
+                <button 
+                  onClick={() => handleTabChange('queue')}
+                  className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2"
+                >
+                  <Clock className="h-6 w-6 text-amber-500" />
+                  <span className="text-sm font-medium">Check Queue</span>
+                </button>
+                <button 
+                  onClick={() => handleTabChange('support')}
+                  className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2"
+                >
+                  <MessageCircle className="h-6 w-6 text-green-500" />
+                  <span className="text-sm font-medium">AI Support</span>
+                </button>
+                <button 
+                  onClick={() => navigate('/user-profile')}
+                  className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-2"
+                >
+                  <User className="h-6 w-6 text-purple-500" />
+                  <span className="text-sm font-medium">My Profile</span>
+                </button>
               </div>
             </div>
           </div>
@@ -492,6 +484,7 @@ const PatientDashboard = () => {
                           <button 
                             className="hospital-btn-primary"
                             disabled={!selectedDate || !selectedTime}
+                            onClick={handleBookAppointment}
                           >
                             Book Appointment
                           </button>
@@ -542,7 +535,13 @@ const PatientDashboard = () => {
                         <button className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100">
                           <Stethoscope className="h-5 w-5" />
                         </button>
-                        <button className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-gray-100">
+                        <button 
+                          className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-gray-100"
+                          onClick={() => {
+                            setAppointments(prev => prev.filter(a => a.id !== appointment.id));
+                            toast.success('Appointment cancelled');
+                          }}
+                        >
                           <X className="h-5 w-5" />
                         </button>
                       </div>

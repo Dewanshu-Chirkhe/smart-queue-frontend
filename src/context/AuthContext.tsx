@@ -21,20 +21,20 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Mock user data - in a real app, this would come from a backend
+// Mock user data with Indian names - in a real app, this would come from a backend
 const MOCK_USERS = [
   {
     id: '1',
     email: 'admin@hospital.com',
     password: 'admin123',
-    name: 'Admin User',
+    name: 'Dr. Rajesh Kumar',
     role: 'staff' as const,
   },
   {
     id: '2',
     email: 'patient@example.com',
     password: 'patient123',
-    name: 'John Doe',
+    name: 'Ananya Sharma',
     role: 'patient' as const,
   },
 ];

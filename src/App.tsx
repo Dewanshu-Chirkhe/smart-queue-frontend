@@ -13,6 +13,8 @@ import PatientDashboard from "./pages/PatientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Inventory from "./pages/Inventory";
 import BedManagement from "./pages/BedManagement";
+import UserProfile from "./pages/UserProfile";
+import HospitalProfile from "./pages/HospitalProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +63,24 @@ const App = () => (
               element={
                 <ProtectedRoute requiresStaff>
                   <BedManagement />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Profile Routes */}
+            <Route 
+              path="/user-profile" 
+              element={
+                <ProtectedRoute>
+                  <UserProfile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hospital-profile" 
+              element={
+                <ProtectedRoute requiresStaff>
+                  <HospitalProfile />
                 </ProtectedRoute>
               } 
             />
