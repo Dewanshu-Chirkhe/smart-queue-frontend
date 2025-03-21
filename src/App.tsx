@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import PatientDashboard from "./pages/PatientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Inventory from "./pages/Inventory";
@@ -30,6 +31,7 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             
             {/* Patient Routes */}
             <Route 

@@ -1,10 +1,9 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { Lock, Mail, AlertCircle, User, Users } from 'lucide-react';
 import { Input } from "@/components/ui/input";
-import OTPVerification from '../components/OTPVerification';
 
 const Login = () => {
   const { login } = useAuth();
@@ -13,7 +12,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,23 +19,26 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Show OTP verification instead of direct login
-      setShowOTP(true);
+      await login(email, password);
+      // If login successful, the AuthContext will redirect to the appropriate dashboard
     } catch (err) {
-      setError('Failed to login. Please check your credentials.');
+      setError('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerifyOTP = async () => {
+  const handleDemoLogin = async (userType: 'staff' | 'patient') => {
+    setIsLoading(true);
+    const demoCredentials = userType === 'staff' 
+      ? { email: 'admin@hospital.com', password: 'admin123' }
+      : { email: 'patient@example.com', password: 'patient123' };
+    
     try {
-      setIsLoading(true);
-      await login(email, password);
-      // If login successful, the AuthContext will redirect to the appropriate dashboard
+      await login(demoCredentials.email, demoCredentials.password);
+      // AuthContext will redirect to the appropriate dashboard
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
-      setShowOTP(false);
+      setError('Demo login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -129,32 +130,45 @@ const Login = () => {
           </div>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            For demo purposes, use:
-          </p>
-          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-gray-50 p-2 rounded">
-              <p className="font-semibold">Staff Login</p>
-              <p>admin@hospital.com</p>
-              <p>admin123</p>
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
             </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <p className="font-semibold">Patient Login</p>
-              <p>patient@example.com</p>
-              <p>patient123</p>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Quick Demo Access</span>
             </div>
           </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('staff')}
+              className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Users className="h-5 w-5 text-hospital-500 mr-2" />
+              Staff Demo
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('patient')}
+              className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <User className="h-5 w-5 text-hospital-500 mr-2" />
+              Patient Demo
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/signup" className="font-medium text-hospital-600 hover:text-hospital-500">
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
-
-      {showOTP && (
-        <OTPVerification 
-          onVerify={handleVerifyOTP} 
-          onCancel={() => setShowOTP(false)}
-          email={email}
-        />
-      )}
     </div>
   );
 };
