@@ -93,6 +93,7 @@ const BedManagement = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [departmentFilter, setDepartmentFilter] = useState('All');
   const [editBedId, setEditBedId] = useState<number | null>(null);
   const [editedBed, setEditedBed] = useState<any>(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -150,8 +151,12 @@ const BedManagement = () => {
       filtered = filtered.filter(bed => bed.status === statusFilter);
     }
     
+    if (departmentFilter !== 'All') {
+      filtered = filtered.filter(bed => bed.departmentName === departmentFilter);
+    }
+    
     setFilteredBeds(filtered);
-  }, [beds, selectedDepartment, searchQuery, statusFilter]);
+  }, [beds, selectedDepartment, searchQuery, statusFilter, departmentFilter]);
   
   // Handle department click
   const handleDepartmentClick = (deptId: number) => {
@@ -248,6 +253,7 @@ const BedManagement = () => {
     setSelectedDepartment(null);
     setSearchQuery('');
     setStatusFilter('All');
+    setDepartmentFilter('All');
   };
   
   // Refresh bed data
@@ -263,6 +269,43 @@ const BedManagement = () => {
       day: 'numeric', 
       year: 'numeric',
     });
+  };
+
+  // Generate department bed grid display
+  const renderDepartmentGrid = (deptId: number) => {
+    const departmentBeds = beds.filter(bed => bed.departmentId === deptId);
+    const department = DEPARTMENTS.find(d => d.id === deptId);
+    
+    // Calculate rows and columns for a nice grid
+    const totalBeds = departmentBeds.length;
+    const columns = Math.min(10, Math.ceil(Math.sqrt(totalBeds)));
+    
+    return (
+      <div className="mt-3 animate-fadeIn">
+        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+          {departmentBeds.map(bed => (
+            <div
+              key={bed.id}
+              className={`aspect-square rounded-md flex flex-col items-center justify-center p-1 
+                ${bed.status === 'Available' 
+                  ? 'bg-green-100 border border-green-200 text-green-700' 
+                  : bed.status === 'Occupied'
+                  ? `bg-${department?.color || 'blue'}-100 border border-${department?.color || 'blue'}-200 text-${department?.color || 'blue'}-700`
+                  : 'bg-gray-100 border border-gray-200 text-gray-700'
+                } cursor-pointer hover:shadow-md transition-shadow`}
+              onClick={() => bed.status === 'Available' ? openAssignModal(bed.id) : openDischargeModal(bed.id)}
+            >
+              <div className="text-xs font-semibold">{bed.number}</div>
+              <div 
+                className={`text-[10px] ${bed.status === 'Available' ? 'text-green-600' : bed.status === 'Occupied' ? `text-${department?.color || 'blue'}-600` : 'text-gray-600'}`}
+              >
+                {bed.status}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -389,39 +432,8 @@ const BedManagement = () => {
                     </div>
                   </div>
                   
-                  <div className="w-full h-2 bg-gray-200 rounded-full">
-                    <div 
-                      className={`h-2 bg-${dept.color}-500 rounded-full`}
-                      style={{ width: `${dept.occupancyRate}%` }}
-                    ></div>
-                  </div>
-                  
-                  {selectedDepartment === dept.id && (
-                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2 mt-3 animate-fadeIn">
-                      {beds
-                        .filter(bed => bed.departmentId === dept.id)
-                        .map(bed => (
-                          <div
-                            key={bed.id}
-                            className={`aspect-square rounded-md flex flex-col items-center justify-center relative
-                              ${bed.status === 'Available' 
-                                ? 'bg-green-100 border border-green-200 text-green-700' 
-                                : bed.status === 'Occupied'
-                                ? `bg-${dept.color}-100 border border-${dept.color}-200 text-${dept.color}-700`
-                                : 'bg-gray-100 border border-gray-200 text-gray-700'
-                              } cursor-pointer hover:shadow-md transition-shadow`}
-                            onClick={() => bed.status === 'Available' ? openAssignModal(bed.id) : openDischargeModal(bed.id)}
-                          >
-                            <div className="text-xs font-semibold">{bed.number}</div>
-                            <div 
-                              className={`text-[10px] ${bed.status === 'Available' ? 'text-green-600' : bed.status === 'Occupied' ? `text-${dept.color}-600` : 'text-gray-600'}`}
-                            >
-                              {bed.status}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )}
+                  {/* Grid display of beds instead of a progress bar */}
+                  {selectedDepartment === dept.id && renderDepartmentGrid(dept.id)}
                 </div>
               ))}
             </div>
@@ -480,6 +492,50 @@ const BedManagement = () => {
         
         <div className="glass-panel p-6">
           <h2 className="section-title mb-4">Bed Details</h2>
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search beds or patients..."
+                className="hospital-input pl-9 max-w-xs"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <select 
+              className="hospital-input max-w-xs"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="All">All Status</option>
+              <option value="Available">Available</option>
+              <option value="Occupied">Occupied</option>
+              <option value="Maintenance">Maintenance</option>
+            </select>
+            
+            <select 
+              className="hospital-input max-w-xs"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+            >
+              <option value="All">All Departments</option>
+              {DEPARTMENTS.map(dept => (
+                <option key={dept.id} value={dept.name}>{dept.name}</option>
+              ))}
+            </select>
+            
+            <button 
+              className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 text-sm hover:bg-gray-50"
+              onClick={resetFilters}
+            >
+              Reset Filters
+            </button>
+          </div>
+          
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
