@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Clock, ArrowRight, Search } from 'lucide-react';
-import { queueService, DepartmentWaitTime } from '../services/queueService';
+import { queueService, DepartmentWaitTime, QueueStatus } from '../services/queueService';
 import { toast } from 'sonner';
 
 // Queue item type
@@ -31,31 +30,19 @@ const QueueManagement = () => {
   const fetchQueueData = async () => {
     setIsLoading(true);
     try {
-      // Replace with API call when backend is ready
-      // For now, simulate API response
-      const mockedQueueItems: QueueItem[] = [
-        {
-          id: '1',
-          patientName: 'Ananya Sharma',
-          patientId: 'P1001',
-          department: 'Cardiology',
-          doctor: 'Dr. Priya Patel',
-          arrivalTime: '09:15 AM',
-          estimatedWaitTime: '25 min',
-          status: 'Waiting'
-        },
-        {
-          id: '2',
-          patientName: 'Vikram Malhotra',
-          patientId: 'P1002',
-          department: 'General',
-          doctor: 'Dr. Rajesh Kumar',
-          arrivalTime: '09:30 AM',
-          estimatedWaitTime: '10 min',
-          status: 'In Progress'
-        },
-      ];
-      setQueueItems(mockedQueueItems);
+      const response = await queueService.getUserQueueStatus();
+      const formattedQueueItems = Array.isArray(response) ? response.map((item: any) => ({
+        id: item.id,
+        patientName: item.patientName,
+        patientId: item.patientId,
+        department: item.department,
+        doctor: item.doctor,
+        arrivalTime: item.arrivalTime,
+        estimatedWaitTime: item.estimatedWaitTime,
+        status: item.status
+      })) : [];
+      
+      setQueueItems(formattedQueueItems);
     } catch (error) {
       console.error('Error fetching queue data:', error);
       toast.error('Failed to load queue data');
@@ -70,15 +57,14 @@ const QueueManagement = () => {
       setDepartmentWaitTimes(data);
     } catch (error) {
       console.error('Error fetching department wait times:', error);
+      toast.error('Failed to load department wait times');
     }
   };
 
   const updateQueueItemStatus = async (id: string, status: QueueItem['status']) => {
     try {
-      // Replace with API call when backend is ready
-      // await api.put(`/queue/${id}`, { status });
+      await api.put(`/queue/${id}`, { status });
       
-      // Update local state
       setQueueItems(prev => 
         prev.map(item => item.id === id ? { ...item, status } : item)
       );
@@ -90,7 +76,6 @@ const QueueManagement = () => {
     }
   };
 
-  // Filter queue items based on search
   const filteredQueueItems = queueItems.filter(item =>
     item.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
