@@ -22,6 +22,7 @@ const UserProfile = () => {
     specialization: '',
     hospital: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize form data when user data is available
   useEffect(() => {
@@ -29,11 +30,11 @@ const UserProfile = () => {
       setFormData({
         name: user.name || '',
         email: user.email || '',
-        phone: user.phone || '+91 9876543210',
-        address: user.address || 'Koramangala, Bangalore',
+        phone: user.phone || '',
+        address: user.address || '',
         bloodType: user.bloodType || 'O+',
-        emergencyContact: user.emergencyContact || '+91 8765432109',
-        dateOfBirth: user.dateOfBirth || '1985-06-15',
+        emergencyContact: user.emergencyContact || '',
+        dateOfBirth: user.dateOfBirth || '',
         specialization: user.specialization || '',
         hospital: user.hospital || '',
       });
@@ -45,9 +46,17 @@ const UserProfile = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateUserProfile(formData);
+    setIsSubmitting(true);
+    
+    try {
+      await updateUserProfile(formData);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!user) {
@@ -235,9 +244,13 @@ const UserProfile = () => {
                 </div>
                 
                 <div className="flex justify-end">
-                  <button type="submit" className="hospital-btn-primary flex items-center">
+                  <button 
+                    type="submit" 
+                    className="hospital-btn-primary flex items-center"
+                    disabled={isSubmitting}
+                  >
                     <Save className="h-4 w-4 mr-2" />
-                    Save Changes
+                    {isSubmitting ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>

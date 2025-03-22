@@ -1,462 +1,274 @@
 
 import { useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, Check, X, User, Clock, ChevronRight } from 'lucide-react';
+import { Clock, ArrowRight, Search } from 'lucide-react';
+import { queueService, DepartmentWaitTime } from '../services/queueService';
 import { toast } from 'sonner';
 
-interface Patient {
+// Queue item type
+interface QueueItem {
   id: string;
-  name: string;
-  age: number;
-  reason: string;
-  waitTime: number;
-  status: 'waiting' | 'in-progress' | 'completed' | 'cancelled';
-  priority: number;
-  arrivalTime: Date;
+  patientName: string;
+  patientId: string;
+  department: string;
+  doctor: string;
+  arrivalTime: string;
+  estimatedWaitTime: string;
+  status: 'Waiting' | 'In Progress' | 'Completed' | 'Cancelled';
 }
 
 const QueueManagement = () => {
-  const [patients, setPatients] = useState<Patient[]>([
-    {
-      id: 'P1001',
-      name: 'Arjun Singh',
-      age: 45,
-      reason: 'Chest pain',
-      waitTime: 25,
-      status: 'waiting',
-      priority: 3,
-      arrivalTime: new Date(Date.now() - 25 * 60 * 1000),
-    },
-    {
-      id: 'P1002',
-      name: 'Priya Mehta',
-      age: 32,
-      reason: 'Fever and headache',
-      waitTime: 15,
-      status: 'waiting',
-      priority: 2,
-      arrivalTime: new Date(Date.now() - 15 * 60 * 1000),
-    },
-    {
-      id: 'P1003',
-      name: 'Raj Malhotra',
-      age: 60,
-      reason: 'Difficulty breathing',
-      waitTime: 10,
-      status: 'in-progress',
-      priority: 4,
-      arrivalTime: new Date(Date.now() - 10 * 60 * 1000),
-    },
-    {
-      id: 'P1004',
-      name: 'Anita Desai',
-      age: 28,
-      reason: 'Sprained ankle',
-      waitTime: 40,
-      status: 'waiting',
-      priority: 1,
-      arrivalTime: new Date(Date.now() - 40 * 60 * 1000),
-    },
-  ]);
+  const [activeTab, setActiveTab] = useState<'current' | 'departments'>('current');
+  const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
+  const [departmentWaitTimes, setDepartmentWaitTimes] = useState<DepartmentWaitTime[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [newPatient, setNewPatient] = useState({
-    name: '',
-    age: '',
-    reason: '',
-    priority: '2',
-  });
-
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [filter, setFilter] = useState('all');
-
-  // Update wait times periodically
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPatients(prevPatients => 
-        prevPatients.map(patient => {
-          if (patient.status === 'waiting') {
-            const nowMs = Date.now();
-            const arrivalMs = patient.arrivalTime.getTime();
-            const waitTimeMinutes = Math.floor((nowMs - arrivalMs) / (1000 * 60));
-            
-            return {
-              ...patient,
-              waitTime: waitTimeMinutes
-            };
-          }
-          return patient;
-        })
-      );
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
+    fetchQueueData();
+    fetchDepartmentWaitTimes();
   }, []);
 
-  // Handle priority change
-  const changePriority = (patientId: string, direction: 'up' | 'down') => {
-    setPatients(prevPatients => 
-      prevPatients.map(patient => {
-        if (patient.id === patientId) {
-          return {
-            ...patient,
-            priority: direction === 'up' 
-              ? Math.min(patient.priority + 1, 5) 
-              : Math.max(patient.priority - 1, 1)
-          };
-        }
-        return patient;
-      })
-    );
-    
-    toast.success(`Patient priority updated`);
-  };
-
-  // Handle status change
-  const changeStatus = (patientId: string, newStatus: 'waiting' | 'in-progress' | 'completed' | 'cancelled') => {
-    setPatients(prevPatients => 
-      prevPatients.map(patient => {
-        if (patient.id === patientId) {
-          return {
-            ...patient,
-            status: newStatus
-          };
-        }
-        return patient;
-      })
-    );
-    
-    toast.success(`Patient status updated to ${newStatus}`);
-  };
-
-  // Handle new patient form submission
-  const handleAddPatient = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPatient.name || !newPatient.age || !newPatient.reason) {
-      toast.error('Please fill all required fields');
-      return;
+  const fetchQueueData = async () => {
+    setIsLoading(true);
+    try {
+      // Replace with API call when backend is ready
+      // For now, simulate API response
+      const mockedQueueItems: QueueItem[] = [
+        {
+          id: '1',
+          patientName: 'Ananya Sharma',
+          patientId: 'P1001',
+          department: 'Cardiology',
+          doctor: 'Dr. Priya Patel',
+          arrivalTime: '09:15 AM',
+          estimatedWaitTime: '25 min',
+          status: 'Waiting'
+        },
+        {
+          id: '2',
+          patientName: 'Vikram Malhotra',
+          patientId: 'P1002',
+          department: 'General',
+          doctor: 'Dr. Rajesh Kumar',
+          arrivalTime: '09:30 AM',
+          estimatedWaitTime: '10 min',
+          status: 'In Progress'
+        },
+      ];
+      setQueueItems(mockedQueueItems);
+    } catch (error) {
+      console.error('Error fetching queue data:', error);
+      toast.error('Failed to load queue data');
+    } finally {
+      setIsLoading(false);
     }
-    
-    const newPatientId = `P${1000 + patients.length + 1}`;
-    
-    setPatients(prev => [
-      ...prev,
-      {
-        id: newPatientId,
-        name: newPatient.name,
-        age: parseInt(newPatient.age),
-        reason: newPatient.reason,
-        waitTime: 0,
-        status: 'waiting',
-        priority: parseInt(newPatient.priority),
-        arrivalTime: new Date(),
-      }
-    ]);
-    
-    setNewPatient({
-      name: '',
-      age: '',
-      reason: '',
-      priority: '2',
-    });
-    
-    setShowAddForm(false);
-    toast.success('New patient added to queue');
   };
 
-  // Filter patients based on status
-  const filteredPatients = filter === 'all' 
-    ? patients
-    : patients.filter(patient => patient.status === filter);
-
-  // Sort patients by priority (higher first), then by wait time (longer first)
-  const sortedPatients = [...filteredPatients].sort((a, b) => {
-    if (a.priority !== b.priority) {
-      return b.priority - a.priority;
+  const fetchDepartmentWaitTimes = async () => {
+    try {
+      const data = await queueService.getDepartmentWaitTimes();
+      setDepartmentWaitTimes(data);
+    } catch (error) {
+      console.error('Error fetching department wait times:', error);
     }
-    return b.waitTime - a.waitTime;
-  });
+  };
+
+  const updateQueueItemStatus = async (id: string, status: QueueItem['status']) => {
+    try {
+      // Replace with API call when backend is ready
+      // await api.put(`/queue/${id}`, { status });
+      
+      // Update local state
+      setQueueItems(prev => 
+        prev.map(item => item.id === id ? { ...item, status } : item)
+      );
+      
+      toast.success(`Patient ${status.toLowerCase()}`);
+    } catch (error) {
+      console.error('Error updating queue status:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  // Filter queue items based on search
+  const filteredQueueItems = queueItems.filter(item =>
+    item.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.department.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h2 className="section-title mb-3 sm:mb-0">Queue Management</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="section-title">Queue Management</h2>
         
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-          <select 
-            className="hospital-input text-sm"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setActiveTab('current')}
+            className={`px-3 py-1 text-sm rounded-md ${
+              activeTab === 'current'
+                ? 'bg-hospital-100 text-hospital-700'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
           >
-            <option value="all">All Patients</option>
-            <option value="waiting">Waiting</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          
-          <button 
-            className="hospital-btn-primary text-sm"
-            onClick={() => setShowAddForm(true)}
+            Current Queue
+          </button>
+          <button
+            onClick={() => setActiveTab('departments')}
+            className={`px-3 py-1 text-sm rounded-md ${
+              activeTab === 'departments'
+                ? 'bg-hospital-100 text-hospital-700'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
           >
-            Add Patient
+            Departments
           </button>
         </div>
       </div>
-
-      {/* Queue Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="stat-card p-4">
-          <p className="text-xs text-gray-500 mb-1">Total Patients</p>
-          <p className="text-xl font-bold">{patients.length}</p>
-        </div>
-        <div className="stat-card p-4">
-          <p className="text-xs text-gray-500 mb-1">Waiting</p>
-          <p className="text-xl font-bold text-amber-600">
-            {patients.filter(p => p.status === 'waiting').length}
-          </p>
-        </div>
-        <div className="stat-card p-4">
-          <p className="text-xs text-gray-500 mb-1">In Progress</p>
-          <p className="text-xl font-bold text-blue-600">
-            {patients.filter(p => p.status === 'in-progress').length}
-          </p>
-        </div>
-        <div className="stat-card p-4">
-          <p className="text-xs text-gray-500 mb-1">Completed</p>
-          <p className="text-xl font-bold text-green-600">
-            {patients.filter(p => p.status === 'completed').length}
-          </p>
-        </div>
-      </div>
-
-      {/* Patient Queue Table */}
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Patient
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Wait Time
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Priority
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {sortedPatients.length > 0 ? (
-              sortedPatients.map(patient => (
-                <tr key={patient.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 bg-hospital-100 rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-hospital-600" />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{patient.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {patient.age} years • {patient.id}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">{patient.reason}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-gray-400 mr-1" />
-                      <span className={`text-sm ${
-                        patient.waitTime > 30 ? 'text-red-600' : 
-                        patient.waitTime > 15 ? 'text-amber-600' : 
-                        'text-gray-600'
-                      }`}>
-                        {patient.waitTime} min
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      patient.status === 'waiting' ? 'bg-amber-100 text-amber-800' :
-                      patient.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                      patient.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {patient.status.replace('-', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-2 h-2 rounded-full mx-0.5 ${
-                            i < patient.priority ? 'bg-hospital-500' : 'bg-gray-200'
-                          }`}
-                        ></div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-1">
-                      <button 
-                        onClick={() => changePriority(patient.id, 'up')}
-                        disabled={patient.priority >= 5}
-                        className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={() => changePriority(patient.id, 'down')}
-                        disabled={patient.priority <= 1}
-                        className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </button>
-                      
-                      {patient.status === 'waiting' && (
-                        <button 
-                          onClick={() => changeStatus(patient.id, 'in-progress')}
-                          className="ml-2 text-blue-600 hover:text-blue-900"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      )}
-                      
-                      {patient.status === 'in-progress' && (
-                        <button 
-                          onClick={() => changeStatus(patient.id, 'completed')}
-                          className="ml-2 text-green-600 hover:text-green-900"
-                        >
-                          <Check className="h-4 w-4" />
-                        </button>
-                      )}
-                      
-                      {(patient.status === 'waiting' || patient.status === 'in-progress') && (
-                        <button 
-                          onClick={() => changeStatus(patient.id, 'cancelled')}
-                          className="ml-2 text-red-600 hover:text-red-900"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                  No patients in the queue
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Add Patient Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md animate-fadeIn">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Add New Patient</h2>
-                <button onClick={() => setShowAddForm(false)}>
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
+      
+      {activeTab === 'current' && (
+        <>
+          <div className="mb-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
               </div>
-              
-              <form onSubmit={handleAddPatient} className="space-y-4">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Patient Name
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    className="hospital-input"
-                    placeholder="Enter patient name"
-                    value={newPatient.name}
-                    onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
-                    Age
-                  </label>
-                  <input
-                    id="age"
-                    type="number"
-                    min="0"
-                    max="120"
-                    className="hospital-input"
-                    placeholder="Enter age"
-                    value={newPatient.age}
-                    onChange={(e) => setNewPatient({ ...newPatient, age: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
-                    Reason for Visit
-                  </label>
-                  <input
-                    id="reason"
-                    type="text"
-                    className="hospital-input"
-                    placeholder="Enter chief complaint"
-                    value={newPatient.reason}
-                    onChange={(e) => setNewPatient({ ...newPatient, reason: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
-                    Priority Level (1-5)
-                  </label>
-                  <select
-                    id="priority"
-                    className="hospital-input"
-                    value={newPatient.priority}
-                    onChange={(e) => setNewPatient({ ...newPatient, priority: e.target.value })}
-                  >
-                    <option value="1">1 - Low</option>
-                    <option value="2">2 - Normal</option>
-                    <option value="3">3 - Elevated</option>
-                    <option value="4">4 - Urgent</option>
-                    <option value="5">5 - Emergency</option>
-                  </select>
-                </div>
-                
-                <div className="flex justify-end space-x-2 pt-4">
-                  <button
-                    type="button"
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    onClick={() => setShowAddForm(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="hospital-btn-primary"
-                  >
-                    Add Patient
-                  </button>
-                </div>
-              </form>
+              <input
+                type="text"
+                placeholder="Search by patient name or ID..."
+                className="hospital-input pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
+          
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin h-10 w-10 border-4 border-hospital-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading queue data...</p>
+            </div>
+          ) : filteredQueueItems.length > 0 ? (
+            <div className="space-y-3">
+              {filteredQueueItems.map(item => (
+                <div
+                  key={item.id}
+                  className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <div className="p-2 rounded-full bg-hospital-50 mr-3">
+                        <Clock className="h-5 w-5 text-hospital-500" />
+                      </div>
+                      <div>
+                        <div className="flex items-center">
+                          <h3 className="font-medium text-gray-900">{item.patientName}</h3>
+                          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800">
+                            {item.patientId}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500">{item.department} • {item.doctor}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-sm">
+                        Arrival: {item.arrivalTime}
+                      </div>
+                      <div className="text-sm text-hospital-600">
+                        <span className="font-medium">Wait: {item.estimatedWaitTime}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-between items-center">
+                    <div>
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                        ${item.status === 'Waiting' ? 'bg-yellow-100 text-yellow-800' : 
+                          item.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                          item.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'}`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      {item.status === 'Waiting' && (
+                        <button
+                          onClick={() => updateQueueItemStatus(item.id, 'In Progress')}
+                          className="px-3 py-1 bg-hospital-50 text-hospital-600 text-sm rounded-md hover:bg-hospital-100"
+                        >
+                          Start
+                        </button>
+                      )}
+                      {item.status === 'In Progress' && (
+                        <button
+                          onClick={() => updateQueueItemStatus(item.id, 'Completed')}
+                          className="px-3 py-1 bg-green-50 text-green-600 text-sm rounded-md hover:bg-green-100"
+                        >
+                          Complete
+                        </button>
+                      )}
+                      {(item.status === 'Waiting' || item.status === 'In Progress') && (
+                        <button
+                          onClick={() => updateQueueItemStatus(item.id, 'Cancelled')}
+                          className="px-3 py-1 bg-red-50 text-red-600 text-sm rounded-md hover:bg-red-100"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
+              <Clock className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+              <h3 className="text-lg font-medium text-gray-700 mb-1">Queue is empty</h3>
+              <p className="text-gray-500">There are no patients waiting at the moment</p>
+            </div>
+          )}
+        </>
+      )}
+      
+      {activeTab === 'departments' && (
+        <div className="space-y-4">
+          {departmentWaitTimes.map((dept, index) => (
+            <div key={index} className="p-4 bg-white rounded-lg border border-gray-200">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium text-gray-900">{dept.department}</h3>
+                  <p className="text-sm text-gray-500">
+                    Capacity: {Math.round(dept.capacity * 100)}%
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-lg text-hospital-600">{dept.averageWaitTime}</div>
+                  <div className="text-xs text-gray-500">Average wait time</div>
+                </div>
+              </div>
+              
+              <div className="mt-3">
+                <div className="w-full h-2 bg-gray-200 rounded-full">
+                  <div 
+                    className={`h-2 rounded-full ${
+                      dept.waitTimeMinutes > 30 ? 'bg-red-500' : 
+                      dept.waitTimeMinutes > 15 ? 'bg-amber-500' : 
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(dept.capacity * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {departmentWaitTimes.length === 0 && (
+            <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
+              <p className="text-gray-500">No department data available</p>
+            </div>
+          )}
         </div>
       )}
     </div>

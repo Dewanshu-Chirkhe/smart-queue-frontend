@@ -1,146 +1,14 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { Package, Search, Filter, PlusCircle, RefreshCw, ArrowDown, ArrowUp, Download, Upload, Edit, Trash2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
-
-// Types for inventory items
-interface InventoryItem {
-  id: string;
-  name: string;
-  category: string;
-  currentStock: number;
-  minimumStock: number;
-  unit: string;
-  expiryDate?: string;
-  supplierName: string;
-  lastUpdated: string;
-  status: 'In Stock' | 'Low Stock' | 'Out of Stock';
-}
-
-// Sample Indian medical supplies and medicine data
-const inventoryData: InventoryItem[] = [
-  {
-    id: 'MED001',
-    name: 'Paracetamol',
-    category: 'Medicine',
-    currentStock: 120,
-    minimumStock: 100,
-    unit: 'Tablets',
-    expiryDate: '2025-06-15',
-    supplierName: 'Sun Pharmaceuticals',
-    lastUpdated: '2023-11-10',
-    status: 'In Stock'
-  },
-  {
-    id: 'MED002',
-    name: 'Amoxicillin',
-    category: 'Medicine',
-    currentStock: 45,
-    minimumStock: 50,
-    unit: 'Capsules',
-    expiryDate: '2025-03-20',
-    supplierName: 'Cipla Ltd.',
-    lastUpdated: '2023-11-12',
-    status: 'Low Stock'
-  },
-  {
-    id: 'MED003',
-    name: 'Ibuprofen',
-    category: 'Medicine',
-    currentStock: 200,
-    minimumStock: 80,
-    unit: 'Tablets',
-    expiryDate: '2025-01-10',
-    supplierName: 'Dr. Reddy\'s Laboratories',
-    lastUpdated: '2023-11-05',
-    status: 'In Stock'
-  },
-  {
-    id: 'SUP001',
-    name: 'Surgical Masks',
-    category: 'Supplies',
-    currentStock: 500,
-    minimumStock: 300,
-    unit: 'Pieces',
-    supplierName: 'Med Essentials India',
-    lastUpdated: '2023-10-28',
-    status: 'In Stock'
-  },
-  {
-    id: 'SUP002',
-    name: 'Surgical Gloves',
-    category: 'Supplies',
-    currentStock: 150,
-    minimumStock: 200,
-    unit: 'Pairs',
-    supplierName: 'Kanam Healthcare',
-    lastUpdated: '2023-11-02',
-    status: 'Low Stock'
-  },
-  {
-    id: 'SUP003',
-    name: 'IV Cannula',
-    category: 'Supplies',
-    currentStock: 80,
-    minimumStock: 100,
-    unit: 'Pieces',
-    expiryDate: '2025-12-31',
-    supplierName: 'Lifeline Medical Supplies',
-    lastUpdated: '2023-10-15',
-    status: 'Low Stock'
-  },
-  {
-    id: 'EQP001',
-    name: 'Pulse Oximeter',
-    category: 'Equipment',
-    currentStock: 25,
-    minimumStock: 10,
-    unit: 'Devices',
-    supplierName: 'BPL Medical Technologies',
-    lastUpdated: '2023-09-20',
-    status: 'In Stock'
-  },
-  {
-    id: 'EQP002',
-    name: 'Digital Thermometer',
-    category: 'Equipment',
-    currentStock: 5,
-    minimumStock: 15,
-    unit: 'Devices',
-    supplierName: 'Omron Healthcare',
-    lastUpdated: '2023-10-05',
-    status: 'Low Stock'
-  },
-  {
-    id: 'MED004',
-    name: 'Azithromycin',
-    category: 'Medicine',
-    currentStock: 0,
-    minimumStock: 30,
-    unit: 'Strips',
-    expiryDate: '2024-08-25',
-    supplierName: 'Mankind Pharma',
-    lastUpdated: '2023-11-01',
-    status: 'Out of Stock'
-  },
-  {
-    id: 'SUP004',
-    name: 'Cotton Rolls',
-    category: 'Supplies',
-    currentStock: 75,
-    minimumStock: 50,
-    unit: 'Rolls',
-    supplierName: 'Johnson & Johnson India',
-    lastUpdated: '2023-10-10',
-    status: 'In Stock'
-  }
-];
+import { inventoryService, InventoryItem, InventoryItemCreateData } from '../services/inventoryService';
 
 const Inventory = () => {
   const { isStaff } = useAuth();
-  const [inventory, setInventory] = useState<InventoryItem[]>(inventoryData);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -149,7 +17,7 @@ const Inventory = () => {
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [editedItem, setEditedItem] = useState<InventoryItem | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newItem, setNewItem] = useState<Partial<InventoryItem>>({
+  const [newItem, setNewItem] = useState<Partial<InventoryItemCreateData>>({
     name: '',
     category: 'Medicine',
     currentStock: 0,
@@ -158,6 +26,24 @@ const Inventory = () => {
     expiryDate: '',
     supplierName: '',
   });
+
+  // Fetch inventory data
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  const fetchInventory = async () => {
+    setIsLoading(true);
+    try {
+      const data = await inventoryService.getAllItems();
+      setInventory(data);
+    } catch (error) {
+      toast.error('Failed to load inventory data');
+      console.error('Error fetching inventory:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter inventory based on search, category, and status
   const filteredInventory = inventory.filter(item => {
@@ -211,31 +97,39 @@ const Inventory = () => {
   };
 
   // Save edited item
-  const saveEditedItem = () => {
+  const saveEditedItem = async () => {
     if (editItemId && editedItem) {
-      // Determine status based on current and minimum stock
-      let status: 'In Stock' | 'Low Stock' | 'Out of Stock';
-      if (editedItem.currentStock <= 0) {
-        status = 'Out of Stock';
-      } else if (editedItem.currentStock < editedItem.minimumStock) {
-        status = 'Low Stock';
-      } else {
-        status = 'In Stock';
+      try {
+        // Determine status based on current and minimum stock
+        let status: 'In Stock' | 'Low Stock' | 'Out of Stock';
+        if (editedItem.currentStock <= 0) {
+          status = 'Out of Stock';
+        } else if (editedItem.currentStock < editedItem.minimumStock) {
+          status = 'Low Stock';
+        } else {
+          status = 'In Stock';
+        }
+
+        const updatedItem = {
+          ...editedItem,
+          status,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        };
+
+        await inventoryService.updateItem(editItemId, updatedItem);
+        
+        // Update local state
+        setInventory(prev => prev.map(item => 
+          item.id === editItemId ? updatedItem : item
+        ));
+        
+        setEditItemId(null);
+        setEditedItem(null);
+        toast.success('Item updated successfully');
+      } catch (error) {
+        toast.error('Failed to update item');
+        console.error('Error updating item:', error);
       }
-
-      const updatedItem = {
-        ...editedItem,
-        status,
-        lastUpdated: new Date().toISOString().split('T')[0]
-      };
-
-      setInventory(prev => prev.map(item => 
-        item.id === editItemId ? updatedItem : item
-      ));
-      
-      setEditItemId(null);
-      setEditedItem(null);
-      toast.success('Item updated successfully');
     }
   };
 
@@ -246,60 +140,56 @@ const Inventory = () => {
   };
 
   // Handle add item form submission
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!newItem.name || !newItem.unit || !newItem.supplierName) {
       toast.error('Please fill all required fields');
       return;
     }
 
-    // Determine status based on current and minimum stock
-    let status: 'In Stock' | 'Low Stock' | 'Out of Stock';
-    if ((newItem.currentStock || 0) <= 0) {
-      status = 'Out of Stock';
-    } else if ((newItem.currentStock || 0) < (newItem.minimumStock || 0)) {
-      status = 'Low Stock';
-    } else {
-      status = 'In Stock';
+    try {
+      const itemToAdd: InventoryItemCreateData = {
+        name: newItem.name || '',
+        category: newItem.category || 'Medicine',
+        currentStock: newItem.currentStock || 0,
+        minimumStock: newItem.minimumStock || 0,
+        unit: newItem.unit || '',
+        expiryDate: newItem.expiryDate,
+        supplierName: newItem.supplierName || '',
+      };
+
+      const addedItem = await inventoryService.createItem(itemToAdd);
+      
+      // Update local state
+      setInventory(prev => [...prev, addedItem]);
+      setShowAddForm(false);
+      setNewItem({
+        name: '',
+        category: 'Medicine',
+        currentStock: 0,
+        minimumStock: 0,
+        unit: '',
+        expiryDate: '',
+        supplierName: '',
+      });
+      
+      toast.success('Item added successfully');
+    } catch (error) {
+      toast.error('Failed to add item');
+      console.error('Error adding item:', error);
     }
-
-    // Generate a new ID
-    const category = newItem.category?.substring(0, 3).toUpperCase() || 'ITM';
-    const itemCount = inventory.filter(item => item.category === newItem.category).length + 1;
-    const newId = `${category}${itemCount.toString().padStart(3, '0')}`;
-
-    const itemToAdd: InventoryItem = {
-      id: newId,
-      name: newItem.name || '',
-      category: newItem.category || 'Medicine',
-      currentStock: newItem.currentStock || 0,
-      minimumStock: newItem.minimumStock || 0,
-      unit: newItem.unit || '',
-      expiryDate: newItem.expiryDate,
-      supplierName: newItem.supplierName || '',
-      lastUpdated: new Date().toISOString().split('T')[0],
-      status
-    };
-
-    setInventory(prev => [...prev, itemToAdd]);
-    setShowAddForm(false);
-    setNewItem({
-      name: '',
-      category: 'Medicine',
-      currentStock: 0,
-      minimumStock: 0,
-      unit: '',
-      expiryDate: '',
-      supplierName: '',
-    });
-    
-    toast.success('Item added successfully');
   };
 
   // Delete an item
-  const deleteItem = (id: string) => {
+  const deleteItem = async (id: string) => {
     if (confirm('Are you sure you want to remove this item?')) {
-      setInventory(prev => prev.filter(item => item.id !== id));
-      toast.success('Item removed from inventory');
+      try {
+        await inventoryService.deleteItem(id);
+        setInventory(prev => prev.filter(item => item.id !== id));
+        toast.success('Item removed from inventory');
+      } catch (error) {
+        toast.error('Failed to delete item');
+        console.error('Error deleting item:', error);
+      }
     }
   };
 
@@ -311,7 +201,7 @@ const Inventory = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="page-title">Inventory Management</h1>
           <div className="flex items-center space-x-2">
-            <button className="p-2 rounded-full hover:bg-gray-100">
+            <button className="p-2 rounded-full hover:bg-gray-100" onClick={fetchInventory}>
               <RefreshCw className="h-5 w-5 text-gray-600" />
             </button>
             <button className="p-2 rounded-full hover:bg-gray-100">
@@ -417,228 +307,235 @@ const Inventory = () => {
             </div>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th 
-                    onClick={() => handleSort('id')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center">
-                      Item ID
-                      {sortField === 'id' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    onClick={() => handleSort('name')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center">
-                      Name
-                      {sortField === 'name' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    onClick={() => handleSort('category')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center">
-                      Category
-                      {sortField === 'category' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    onClick={() => handleSort('currentStock')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center">
-                      Current Stock
-                      {sortField === 'currentStock' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    onClick={() => handleSort('status')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {sortField === 'status' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    onClick={() => handleSort('supplierName')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center">
-                      Supplier
-                      {sortField === 'supplierName' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    onClick={() => handleSort('lastUpdated')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center">
-                      Last Updated
-                      {sortField === 'lastUpdated' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedInventory.map(item => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {editItemId === item.id ? (
-                        <span>{item.id}</span>
-                      ) : (
-                        item.id
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {editItemId === item.id ? (
-                        <input
-                          type="text"
-                          className="hospital-input"
-                          value={editedItem?.name}
-                          onChange={(e) => setEditedItem(prev => prev ? { ...prev, name: e.target.value } : null)}
-                        />
-                      ) : (
-                        item.name
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {editItemId === item.id ? (
-                        <select
-                          className="hospital-input"
-                          value={editedItem?.category}
-                          onChange={(e) => setEditedItem(prev => prev ? { ...prev, category: e.target.value } : null)}
-                        >
-                          <option value="Medicine">Medicine</option>
-                          <option value="Supplies">Supplies</option>
-                          <option value="Equipment">Equipment</option>
-                        </select>
-                      ) : (
-                        item.category
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {editItemId === item.id ? (
-                        <div className="flex items-center space-x-1">
-                          <input
-                            type="number"
-                            min="0"
-                            className="hospital-input w-20"
-                            value={editedItem?.currentStock}
-                            onChange={(e) => setEditedItem(prev => prev ? { ...prev, currentStock: parseInt(e.target.value) || 0 } : null)}
-                          />
-                          <span>{item.unit}</span>
-                        </div>
-                      ) : (
-                        `${item.currentStock} ${item.unit}`
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${item.status === 'In Stock' ? 'bg-green-100 text-green-800' : 
-                          item.status === 'Low Stock' ? 'bg-amber-100 text-amber-800' : 
-                          'bg-red-100 text-red-800'}`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {editItemId === item.id ? (
-                        <input
-                          type="text"
-                          className="hospital-input"
-                          value={editedItem?.supplierName}
-                          onChange={(e) => setEditedItem(prev => prev ? { ...prev, supplierName: e.target.value } : null)}
-                        />
-                      ) : (
-                        item.supplierName
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.lastUpdated}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {editItemId === item.id ? (
-                        <div className="flex justify-end space-x-2">
-                          <button 
-                            onClick={saveEditedItem}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            <Save className="h-4 w-4" />
-                          </button>
-                          <button 
-                            onClick={cancelEditing}
-                            className="text-gray-600 hover:text-gray-900"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end space-x-2">
-                          <button 
-                            onClick={() => startEditing(item)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button 
-                            onClick={() => deleteItem(item.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                
-                {sortedInventory.length === 0 && (
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin h-10 w-10 border-4 border-hospital-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading inventory data...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                      No inventory items found matching your filters.
-                    </td>
+                    <th 
+                      onClick={() => handleSort('id')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        Item ID
+                        {sortField === 'id' && (
+                          <span className="ml-1">
+                            {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('name')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        Name
+                        {sortField === 'name' && (
+                          <span className="ml-1">
+                            {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('category')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        Category
+                        {sortField === 'category' && (
+                          <span className="ml-1">
+                            {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('currentStock')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        Current Stock
+                        {sortField === 'currentStock' && (
+                          <span className="ml-1">
+                            {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('status')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        Status
+                        {sortField === 'status' && (
+                          <span className="ml-1">
+                            {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('supplierName')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        Supplier
+                        {sortField === 'supplierName' && (
+                          <span className="ml-1">
+                            {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('lastUpdated')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        Last Updated
+                        {sortField === 'lastUpdated' && (
+                          <span className="ml-1">
+                            {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sortedInventory.map(item => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {editItemId === item.id ? (
+                          <span>{item.id}</span>
+                        ) : (
+                          item.id
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {editItemId === item.id ? (
+                          <input
+                            type="text"
+                            className="hospital-input"
+                            value={editedItem?.name}
+                            onChange={(e) => setEditedItem(prev => prev ? { ...prev, name: e.target.value } : null)}
+                          />
+                        ) : (
+                          item.name
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {editItemId === item.id ? (
+                          <select
+                            className="hospital-input"
+                            value={editedItem?.category}
+                            onChange={(e) => setEditedItem(prev => prev ? { ...prev, category: e.target.value } : null)}
+                          >
+                            <option value="Medicine">Medicine</option>
+                            <option value="Supplies">Supplies</option>
+                            <option value="Equipment">Equipment</option>
+                          </select>
+                        ) : (
+                          item.category
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {editItemId === item.id ? (
+                          <div className="flex items-center space-x-1">
+                            <input
+                              type="number"
+                              min="0"
+                              className="hospital-input w-20"
+                              value={editedItem?.currentStock}
+                              onChange={(e) => setEditedItem(prev => prev ? { ...prev, currentStock: parseInt(e.target.value) || 0 } : null)}
+                            />
+                            <span>{item.unit}</span>
+                          </div>
+                        ) : (
+                          `${item.currentStock} ${item.unit}`
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                          ${item.status === 'In Stock' ? 'bg-green-100 text-green-800' : 
+                            item.status === 'Low Stock' ? 'bg-amber-100 text-amber-800' : 
+                            'bg-red-100 text-red-800'}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {editItemId === item.id ? (
+                          <input
+                            type="text"
+                            className="hospital-input"
+                            value={editedItem?.supplierName}
+                            onChange={(e) => setEditedItem(prev => prev ? { ...prev, supplierName: e.target.value } : null)}
+                          />
+                        ) : (
+                          item.supplierName
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.lastUpdated}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {editItemId === item.id ? (
+                          <div className="flex justify-end space-x-2">
+                            <button 
+                              onClick={saveEditedItem}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              <Save className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={cancelEditing}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end space-x-2">
+                            <button 
+                              onClick={() => startEditing(item)}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => deleteItem(item.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  
+                  {sortedInventory.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                        No inventory items found matching your filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
